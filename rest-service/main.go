@@ -159,10 +159,10 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/people/{id:[a-z0-9-]+}", peopleByIDHandler).Methods("GET")
+	r.HandleFunc("/people/{id}", peopleByIDHandler).Methods("GET")
 
 	r.HandleFunc("/people", peopleNameHandler).Methods("GET").
-		Queries("first_name", "{first_name:[a-zA-Z]+}", "last_name", "{last_name:[a-zA-Z]+}")
+		Queries("first_name", "{first_name}", "last_name", "{last_name}")
 
 	r.HandleFunc("/people", peoplePhoneHandler).Methods("GET").
 		Queries("phone_number", "{phone_number}")
