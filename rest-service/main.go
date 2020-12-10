@@ -149,6 +149,10 @@ func getName(w http.ResponseWriter, r *http.Request) (name, error) {
 	return name{}, errors.New(errorMsg)
 }
 
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
+	http.NotFound(w, r)
+}
+
 func main() {
 	fmt.Println("SP// Backend Developer Test - RESTful Service")
 	fmt.Println()
@@ -164,6 +168,8 @@ func main() {
 		Queries("phone_number", "{phone_number}")
 
 	r.HandleFunc("/people", peopleHandler).Methods("GET")
+
+	r.HandleFunc("/", notFoundHandler)
 
 	log.Println("Starting people server on :8080")
 	err := http.ListenAndServe(":8080", r)
