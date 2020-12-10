@@ -14,11 +14,19 @@ import (
 )
 
 func peopleHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("peopleHandler handling request for: %s", r.URL.RequestURI())
+
+	if len(r.URL.Query()) > 0 {
+		http.Error(w, "Malformed request to /people endpoint", http.StatusBadRequest)
+		return
+	}
+
 	peopleJSON, err := json.Marshal(models.AllPeople())
 
 	if err != nil {
 		log.Printf("Error marshalling all people: %s", err.Error())
 		http.Error(w, "Internal error encountered", http.StatusInternalServerError)
+		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -26,6 +34,7 @@ func peopleHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func peopleByIDHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("peopleByIDHandler handling request for: %s", r.URL.RequestURI())
 	uuid, err := getID(w, r)
 	if err != nil {
 		log.Printf("Error retrieving UUID: %s", err.Error())
@@ -35,7 +44,7 @@ func peopleByIDHandler(w http.ResponseWriter, r *http.Request) {
 	people, err := models.FindPersonByID(uuid)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Could not find person with the specified ID: %s", uuid.String())
-		http.Error(w, errorMsg, http.StatusBadRequest)
+		http.Error(w, errorMsg, http.StatusNotFound)
 		return
 	}
 
@@ -67,6 +76,7 @@ func getID(w http.ResponseWriter, r *http.Request) (uuid.UUID, error) {
 }
 
 func peoplePhoneHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("peoplePhoneHandler handling request for: %s", r.URL.RequestURI())
 	number, err := getPhoneNumber(w, r)
 
 	if err != nil {
@@ -100,6 +110,7 @@ func getPhoneNumber(w http.ResponseWriter, r *http.Request) (string, error) {
 }
 
 func peopleNameHandler(w http.ResponseWriter, r *http.Request) {
+	log.Printf("peopleNameHandler handling request for: %s", r.URL.RequestURI())
 	name, err := getName(w, r)
 
 	if err != nil {
@@ -138,47 +149,21 @@ func getName(w http.ResponseWriter, r *http.Request) (name, error) {
 	return name{}, errors.New(errorMsg)
 }
 
-func peopleSelectorHandler(w http.ResponseWriter, r *http.Request) {
-	fName, lName, pNumber := r.URL.Query().Get("first_name"), r.URL.Query().Get("last_name"), r.URL.Query().Get("phone_number")
-	if fName != "" {
-		if lName != "" {
-			peopleJson, err := json.Marshal(models.FindPeopleByName(fName, lName))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.Write(peopleJson)
-			return
-		}
-	}
-	if pNumber != "" {
-		peopleJson, err := json.Marshal(models.FindPeopleByPhoneNumber(pNumber))
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(peopleJson)
-		return
-	}
-	http.Error(w, "Bad query string", http.StatusBadRequest)
-
-}
-
 func main() {
 	fmt.Println("SP// Backend Developer Test - RESTful Service")
 	fmt.Println()
 
 	r := mux.NewRouter()
-	r.HandleFunc("/people", peopleHandler).Methods("GET")
+
 	r.HandleFunc("/people/{id:[a-z0-9-]+}", peopleByIDHandler).Methods("GET")
 
-	r.HandleFunc("/people/", peopleNameHandler).Methods("GET").
+	r.HandleFunc("/people", peopleNameHandler).Methods("GET").
 		Queries("first_name", "{first_name:[a-zA-Z]+}", "last_name", "{last_name:[a-zA-Z]+}")
 
-	r.HandleFunc("/people/", peoplePhoneHandler).Methods("GET").
-		Queries("phone_number", "")
+	r.HandleFunc("/people", peoplePhoneHandler).Methods("GET").
+		Queries("phone_number", "{phone_number}")
+
+	r.HandleFunc("/people", peopleHandler).Methods("GET")
 
 	log.Println("Starting people server on :8080")
 	err := http.ListenAndServe(":8080", r)
