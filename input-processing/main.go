@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
-	"io"
 	"os"
 )
 
@@ -24,7 +24,28 @@ func main() {
 	}
 
 	// Read STDIN into a new buffered reader
-	reader := bufio.NewReader(os.Stdin)
 
+	splitFunc := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
+		advance, token, err = bufio.ScanLines(data, atEOF)
+		if err == nil && token != nil {
+			if bytes.Contains(token, []byte("error")) {
+				return advance, token, nil
+			}
+			return advance, []byte{}, nil
+		}
+		return advance, token, err
+
+	}
 	// TODO: Look for lines in the STDIN reader that contain "error" and output them.
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Split(splitFunc)
+	writer := bufio.NewWriter(os.Stdout)
+	for scanner.Scan() {
+		w, _ := writer.WriteString(fmt.Sprintln(scanner.Text()))
+		if w == 0 {
+			fmt.Println("Wrote 0 bytes")
+		}
+	}
+	writer.Flush()
+
 }
